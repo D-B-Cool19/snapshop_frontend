@@ -12,7 +12,8 @@ RUN npm install -g pnpm
 WORKDIR /app
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-lock.yaml ./
-COPY --from=builder /app/.svelte-kit ./svelte-kit
+COPY --from=builder /app/build ./build
+RUN npm install -g pnpm
 RUN pnpm install --prod --frozen-lockfile
-EXPOSE 8000
-CMD ["pnpm", "run", "preview"]
+EXPOSE 3000
+CMD ["node", "build"]
