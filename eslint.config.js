@@ -5,7 +5,7 @@ export default antfu({
         indent: 4,
         quotes: 'single',
     },
-    vue: true,
+    svelte: true,
     typescript: true,
     rules: {
         'style/semi': 0,
