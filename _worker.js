@@ -1,5 +1,5 @@
 export default {
-    async fetch(request) {
+    async fetch(request, env) {
         const url = new URL(request.url);
         console.log('Request received for:', url.pathname);
         if (url.pathname.startsWith('/api/')) {
@@ -10,8 +10,8 @@ export default {
                 headers: request.headers,
                 body: request.body,
             });
-            return fetch(newRequest);
+            return env.ASSETS.fetch(newRequest);
         }
-        return fetch(request);
+        return env.ASSETS.fetch(request);
     },
 };
