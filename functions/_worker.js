@@ -1,5 +1,5 @@
 export default {
-    async fetch(request, env) {
+    async fetch(request) {
         const url = new URL(request.url);
         console.log('Request received for:', url.pathname);
         if (url.pathname.startsWith('/api/')) {
@@ -13,6 +13,6 @@ export default {
             // return env.ASSETS.fetch(newRequest);
             return new Response('Ok');
         }
-        return env.ASSETS.fetch(request);
+        return fetch(request);
     },
 };
