@@ -5,8 +5,8 @@ publish = "build"
 [functions]
 directory = "netlify/functions"
 
-[[redirects]]
-from = "/api/*"
-to = "http://47.98.118.134/api/:splat"
-status = 200
-force = true
+#[[redirects]]
+#from = "/api/*"
+#to = "http://47.98.118.134/api/:splat"
+#status = 200
+#force = true
