@@ -31,7 +31,6 @@
 	"dependencies": {
 		"@antfu/eslint-config": "^3.7.3",
 		"@netlify/functions": "^2.8.2",
-		"@sveltejs/adapter-cloudflare": "^4.7.2",
 		"@sveltejs/adapter-netlify": "^4.3.4",
 		"bits-ui": "^0.21.16",
 		"clsx": "^2.1.1",
