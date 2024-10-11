@@ -149,7 +149,7 @@
         </Card.Header>
         <Card.Content>
             <div class='relative w-full aspect-video'>
-                <video bind:this={videoElement} autoplay class='absolute top-0 left-0 w-full h-full'>
+                <video bind:this={videoElement} autoplay class='absolute top-0 left-0 w-full h-full rounded-lg'>
                     <track kind='captions' src="" />
                 </video>
                 <canvas bind:this={canvasElement} class='absolute top-0 left-0 w-full h-full'></canvas>

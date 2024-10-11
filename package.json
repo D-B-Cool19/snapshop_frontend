@@ -30,6 +30,7 @@
 	"type": "module",
 	"dependencies": {
 		"@antfu/eslint-config": "^3.7.3",
+		"@sveltejs/adapter-cloudflare": "^4.7.2",
 		"bits-ui": "^0.21.16",
 		"clsx": "^2.1.1",
 		"eslint": "^9.12.0",
@@ -37,6 +38,7 @@
 		"svelte-sonner": "^0.3.28",
 		"tailwind-merge": "^2.5.3",
 		"tailwind-variants": "^0.2.1",
-		"typescript-eslint": "^8.8.0"
+		"typescript-eslint": "^8.8.0",
+		"wrangler": "^3.80.2"
 	}
 }
