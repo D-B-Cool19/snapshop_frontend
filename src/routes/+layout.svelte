@@ -1,7 +1,10 @@
 <script>
-    import { Toaster } from '$lib/components/ui/sonner';
-    import '../app.css';
+    import { Toaster } from "$lib/components/ui/sonner";
+    import autoAnimate from "@formkit/auto-animate";
+    import "../app.css";
 </script>
 
 <Toaster />
-<slot></slot>
+<div class="w-full h-full bg-background" use:autoAnimate>
+    <slot></slot>
+</div>
