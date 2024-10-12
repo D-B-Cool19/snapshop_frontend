@@ -1,162 +1,169 @@
-<script context="module" lang="ts">
-    declare let ImageCapture: {
-        new(videoTrack: MediaStreamTrack): {
-            takePhoto(): Promise<Blob>
-        }
-    };
-</script>
-
 <script lang="ts">
-    import { uploadFaceEmbedding } from "$lib/api";
-    import fig4 from "$lib/assets/image/fig4.png";
+    import { goto } from "$app/navigation";
+    import { loginApi, loginWithFaceApi, uploadFaceEmbeddingApi } from "$lib/api";
+    import fig3 from "$lib/assets/image/fig3.png";
+    import Camera from "$lib/components/camera.svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { Input } from "$lib/components/ui/input";
     import { Label } from "$lib/components/ui/label";
+    import { token, user } from "$lib/stores";
     import { cn } from "$lib/utils";
     import autoAnimate from "@formkit/auto-animate";
-    import { Camera } from "lucide-svelte";
+    import { Camera as CameraIcon, Key } from "lucide-svelte";
+    import { tick } from "svelte";
 
-    let videoElement: HTMLVideoElement;
     let useCamera = false;
-    let intervalId: NodeJS.Timeout;
-    let isDetected = false;
-
-    function getImageDimensionsFromBlob(blob: Blob) {
-        return new Promise((resolve, reject) => {
-            const url = URL.createObjectURL(blob);
-            const img = new Image();
-            img.onload = () => {
-                const width = img.width;
-                const height = img.height;
-                URL.revokeObjectURL(url);
-                resolve({ width, height });
-            };
-            img.onerror = reject;
-            img.src = url;
-        });
-    }
-
-    function captureFrameAsBlob(): Promise<Blob | null> {
-        return new Promise((resolve, reject) => {
-            if (videoElement) {
-                const videoTrack = videoElement.srcObject instanceof MediaStream ? videoElement.srcObject.getVideoTracks()[0] : null;
-                if (!videoTrack)
-                    return resolve(null);
-
-                const imageCapture = new ImageCapture(videoTrack);
-                imageCapture.takePhoto().then(async (blob: Blob) => {
-                    const size = await getImageDimensionsFromBlob(blob);
-                    console.log("拍照成功:", blob, size);
-                    resolve(blob);
-                }).catch((error: Error) => {
-                    console.error("拍照失败:", error);
-                    reject(new Error("拍照失败"));
-                });
-            }
-            else {
-                resolve(null);
-            }
-        });
-    }
+    let detectNumber = 0;
+    let camera: Camera | null = null;
+    let userEmbedding: number[] | null = null;
+    let errorMessage: string | null = null;
 
     async function sendFaceImg(): Promise<void> {
-        const imageBlob = await captureFrameAsBlob();
+        if (!camera)
+            return;
+        const imageBlob = await camera.capture();
         if (!imageBlob)
             return;
         try {
-            const result = await uploadFaceEmbedding(imageBlob);
+            const result = await uploadFaceEmbeddingApi(imageBlob);
             console.log("Embedding uploaded successfully:", result);
             const embeddings = result.embeddings;
-            isDetected = embeddings.length > 0;
+            detectNumber = embeddings.length;
+            if (detectNumber === 1) {
+                userEmbedding = embeddings[0].faceEmbedding;
+            }
+            else {
+                userEmbedding = null;
+            }
+            console.log("Embedding:", userEmbedding);
         }
         catch (error) {
             console.error("Error uploading face image:", error);
         }
     }
 
-    const startCamera = async () => {
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            if (videoElement) {
-                videoElement.srcObject = stream;
-                intervalId = setInterval(sendFaceImg, 1000);
-            }
-        }
-        catch (error) {
-            console.error("Error accessing camera: ", error);
-        }
-    };
+    async function handleCameraStart() {
+        await tick();
+        await camera?.startCamera();
+        camera?.bindInterval(sendFaceImg, 1000);
+    }
 
-    const stopCamera = () => {
-        if (videoElement && videoElement.srcObject) {
-            const stream = videoElement.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-            videoElement.srcObject = null;
-            clearInterval(intervalId);
-        }
-    };
+    async function handleCameraStop() {
+        console.log("Stop camera");
+        camera?.stopCamera();
+    }
 
     $: if (useCamera) {
-        console.log("Starting camera");
-        startCamera();
+        handleCameraStart();
+        errorMessage = null;
     }
     else {
-        console.log("Stop camera");
-        stopCamera();
+        handleCameraStop();
+        errorMessage = null;
     }
 
+    async function login(event: Event) {
+        if (useCamera) {
+            if (!userEmbedding) {
+                errorMessage = "Please make sure your face is clearly visible in the camera.";
+                return;
+            }
+            try {
+                await loginWithFaceApi(userEmbedding);
+            }
+            catch (error: any) {
+                errorMessage = "No matching face found. Please try again.";
+            }
+        }
+        else if (!useCamera) {
+            const form = event.target as HTMLFormElement;
+            const formData = new FormData(form);
+            const username = formData.get("username") as string;
+            const password = formData.get("password") as string;
+            try {
+                const result = await loginApi(username, password);
+                user.set(result.user);
+                token.set(result.token);
+                await goto("/");
+            }
+            catch (error: any) {
+                errorMessage = "Please check your email, Snap ID, and password.";
+            }
+        }
+    }
 </script>
 
 <div class="flex w-full h-full overflow-hidden items-center justify-center">
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[110%] w-[110%]">
-        <img class="w-full h-full blur-md" src={fig4} alt="" />
+        <img class="w-full h-full blur-md" src={fig3} alt="" />
     </div>
-    <Card.Root class="z-10 mx-auto max-w-sm shadow-lg">
+    <Card.Root class="z-10 mx-auto w-full max-w-sm shadow-lg bg-card/75">
         <Card.Header>
             <Card.Title class="text-2xl">Login</Card.Title>
-            <Card.Description>Enter your email below to login to your account</Card.Description>
+            <Card.Description>
+                {useCamera
+                    ? "Please make sure your face is clearly visible in the camera."
+                    : "Enter your email or Snap ID and password to login."}
+            </Card.Description>
         </Card.Header>
         <Card.Content>
-
-            <div class="grid gap-4" use:autoAnimate>
+            <form class="grid gap-4" use:autoAnimate on:submit|preventDefault={login}>
                 {#if useCamera}
                     <div use:autoAnimate class="relative w-full h-full flex items-center justify-center flex-col gap-4">
-                        <video bind:this={videoElement} autoplay class={cn("w-52 h-52 object-cover rounded-full transition-all ring-offset-4", isDetected ? "ring-blue-500 ring-4" : "ring-primary ring-2")}>
-                            <track kind="captions" src="" />
-                        </video>
-                        <Label class={cn(isDetected && "text-blue-500", "transition-all")}>
-                            {isDetected ? "Detecte Face" : "No Face Detected"}
+                        <Camera bind:this={camera} class={cn("w-52 h-52 object-cover rounded-full transition-all ring-offset-4 ring-primary ring-2", detectNumber === 1 && "ring-blue-500 ring-4", detectNumber > 1 && "ring-red-500")} />
+                        <Label class={cn(detectNumber === 1 && "text-blue-500", detectNumber > 1 && "text-red-500", "transition-all")}>
+                            {(() => {
+                                if (detectNumber === 1) {
+                                    return "Face Detected";
+                                }
+                                else if (detectNumber > 1) {
+                                    return "Multiple Faces Detected";
+                                }
+                                else {
+                                    return "No Face Detected";
+                                }
+                            })()}
                         </Label>
-
-                        <!--                        <canvas bind:this={canvasElement} class="absolute top-0 left-0 w-full h-full"></canvas> -->
                     </div>
                 {:else}
                     <div class="grid gap-2">
-                        <Label for="email">Email</Label>
-                        <Input id="email" type="email" placeholder="m@example.com" required />
+                        <Label for="username"> Email or Snap ID </Label>
+                        <Input id="username" type="username" name="username" required />
                     </div>
                     <div class="grid gap-2">
                         <div class="flex items-center">
                             <Label for="password">Password</Label>
-                            <a href="##" class="ml-auto inline-block text-sm underline">
-                                Forgot your password?
-                            </a>
+                            <!--                            <a href="##" class="ml-auto inline-block text-sm underline"> -->
+                            <!--                                Forgot your password? -->
+                            <!--                            </a> -->
                         </div>
-                        <Input id="password" type="password" required />
+                        <Input id="password" type="password" name="password" required />
                     </div>
                 {/if}
-                <Button type="submit" class="w-full" disabled={useCamera && !isDetected}>Login</Button>
-                <Button variant="outline" class="w-full space-x-1" on:click={() => useCamera = true}>
-                    <Camera class="size-5" />
-                    <div>
-                        Login with Camera
-                    </div>
-                </Button>
-            </div>
+                {#if errorMessage}
+                    <Label class="text-destructive"> {errorMessage} </Label>
+                {/if}
+                <Button type="submit" class="w-full" disabled={useCamera && detectNumber !== 1}>Login</Button>
+                {#if useCamera}
+                    <Button variant="outline" class="w-full space-x-2" on:click={() => useCamera = false}>
+                        <Key class="size-4" />
+                        <div>
+                            Login with Password
+                        </div>
+                    </Button>
+                {:else}
+                    <Button variant="outline" class="w-full space-x-2" on:click={() => useCamera = true}>
+                        <CameraIcon class="size-4" />
+                        <div>
+                            Login with Camera
+                        </div>
+                    </Button>
+                {/if}
+            </form>
             <div class="mt-4 text-center text-sm">
                 Don&apos;t have an account?
-                <a href="##" class="underline"> Sign up </a>
+                <a href="/register" class="underline"> Register </a>
             </div>
         </Card.Content>
     </Card.Root>

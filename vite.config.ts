@@ -1,17 +1,18 @@
-import { enhancedImages } from '@sveltejs/enhanced-img';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { enhancedImages } from "@sveltejs/enhanced-img";
+import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vite";
 
 export default defineConfig({
     plugins: [sveltekit(), enhancedImages()],
     server: {
         proxy: {
-            '/api': {
-                target: 'http://47.98.118.134',
+            "/api": {
+                // target: 'http://47.98.118.134',
+                target: "http://127.0.0.1:5000",
                 changeOrigin: true,
             },
-            '/uploads': {
-                target: 'http://47.98.118.134',
+            "/uploads": {
+                target: "http://47.98.118.134",
                 changeOrigin: true,
                 secure: false,
             },
