@@ -1,15 +1,7 @@
-<script context="module" lang="ts">
-    declare let ImageCapture: {
-        new(videoTrack: MediaStreamTrack): {
-            takePhoto(): Promise<Blob>
-        }
-    };
-</script>
-
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { isEmailAvailableApi, isUsernameAvailableApi, loginApi, registerApi, uploadFaceEmbeddingApi } from "$lib/api";
-    import fig3 from "$lib/assets/image/fig3.png";
+    import fig3 from "$lib/assets/image/fig4.png";
     import Camera from "$lib/components/camera.svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
@@ -20,7 +12,7 @@
     import { token, user } from "$lib/stores";
     import { cn, flyAndScale } from "$lib/utils";
     import autoAnimate from "@formkit/auto-animate";
-    import { ScanFace } from "lucide-svelte";
+    import { CircleCheck, ScanFace } from "lucide-svelte";
     import { tick } from "svelte";
     import { ArrowLeft, ArrowRight } from "svelte-radix";
 
@@ -31,6 +23,7 @@
         age: number | null
         password: string
         faceImg: Blob | null
+        embedding: number[] | null
     }
 
     let camera: Camera | null = null;
@@ -46,6 +39,7 @@
         age: null,
         password: "",
         faceImg: null,
+        embedding: [],
     };
 
     async function cropBlob(blob: Blob, x: number, y: number, w: number, h: number): Promise<Blob> {
@@ -89,11 +83,12 @@
             detectNumber = embeddings.length;
             if (detectNumber === 1) {
                 const [x, y, w, h] = embeddings[0].xyxy;
-                const size = Math.max(w, h);
+                const size = Math.max(w, h) + 50;
                 const center = [x + w / 2, y + h / 2];
                 const new_x = Math.max(0, center[0] - size / 2);
                 const new_y = Math.max(0, center[1] - size / 2);
                 registerInfo.faceImg = await cropBlob(imageBlob, new_x, new_y, size, size);
+                registerInfo.embedding = embeddings[0].faceEmbedding;
                 primeUserUrl = URL.createObjectURL(registerInfo.faceImg);
             }
         }
@@ -128,6 +123,18 @@
         if (step === 1) {
             try {
                 const username = formData.get("username") as string;
+                if (!username) {
+                    errorMessage = "Snap ID is required.";
+                    return;
+                }
+                if (username.length < 4) {
+                    errorMessage = "Snap ID is too short.";
+                    return;
+                }
+                if (username.length > 20) {
+                    errorMessage = "Snap ID is too long.";
+                    return;
+                }
                 const result = await isUsernameAvailableApi(username);
                 if (result.available) {
                     registerInfo.username = username;
@@ -204,7 +211,10 @@
                     registerInfo.email,
                     registerInfo.age,
                     registerInfo.gender,
+                    registerInfo.embedding,
                 );
+                step = 5;
+                errorMessage = null;
             }
             catch (error: any) {
                 errorMessage = "Failed to register. Please try again later.";
@@ -238,7 +248,7 @@
     <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[110%] w-[110%]">
         <img class="w-full h-full blur-md" src={fig3} alt="" />
     </div>
-    <Card.Root class="z-10 mx-auto max-w-sm shadow-lg w-full bg-card/75">
+    <Card.Root class="z-10 mx-auto max-w-sm shadow-lg w-full bg-card">
         <Card.Header>
             <Card.Title class="text-2xl">Register</Card.Title>
             <Card.Description>
@@ -255,7 +265,7 @@
         </Card.Header>
         <Card.Content>
             <form class="grid gap-4" use:autoAnimate on:submit|preventDefault={nextStep} on:reset|preventDefault={previousStep}>
-                {#if step !== 4}
+                {#if step < 4}
                     <div use:autoAnimate class="grid gap-2">
                         {#if step > 1}
                             <Label for="username">Snap ID</Label>
@@ -305,11 +315,20 @@
                 {#if step === 4}
                     {#if useCamera}
                         <div use:autoAnimate class="relative w-full h-full flex items-center justify-center flex-col gap-4">
-                            <Camera bind:this={camera} class={cn("w-52 h-52 object-cover rounded-full transition-all ring-offset-4 ring-primary ring-2", detectNumber === 1 && "ring-blue-500 ring-4", detectNumber > 1 && "ring-red-500")} />
-                            <Label class={cn(detectNumber === 1 && "text-blue-500", detectNumber > 1 && "text-red-500", "transition-all")}>
+                            <Camera bind:this={camera} class={cn(
+                                "w-52 h-52 object-cover rounded-full transition-all ring-offset-4 ring-primary ring-2",
+                                detectNumber === 1 && registerInfo.embedding?.length === 512 && "ring-green-500 ring-4",
+                                (detectNumber > 1 || registerInfo.embedding?.length !== 512) && "ring-red-500",
+                            )} />
+                            <Label class={cn(detectNumber === 1 && "text-green-500", detectNumber > 1 && "text-red-500", "transition-all")}>
                                 {(() => {
                                     if (detectNumber === 1) {
-                                        return "Face Detected";
+                                        if (registerInfo.embedding?.length === 512) {
+                                            return "Face Detected";
+                                        }
+                                        else {
+                                            return "Face Embedding Not Found";
+                                        }
                                     }
                                     else if (detectNumber > 1) {
                                         return "Multiple Faces Detected";
@@ -320,7 +339,7 @@
                                 })()}
                             </Label>
                         </div>
-                        <Button type="submit" disabled={useCamera && detectNumber !== 1}>
+                        <Button type="submit" disabled={useCamera && (detectNumber !== 1 || registerInfo.embedding?.length !== 512)}>
                             Register
                         </Button>
                         <Button variant="secondary" on:click={() => useCamera = false}>
@@ -338,6 +357,13 @@
                         </Button>
                     {/if}
                 {/if}
+                {#if step === 5}
+                    <div class="w-full flex justify-center text-green-500">
+                        <CircleCheck class="size-32" />
+                    </div>
+                    <Label class="text-lg font-bold text-center"> You are all set. </Label>
+                    <Button type="submit">Login</Button>
+                {/if}
                 {#if errorMessage}
                     <Label class="text-destructive"> {errorMessage} </Label>
                 {/if}
@@ -347,7 +373,7 @@
                         <Progress bind:value={step} max={4} class="w-full" />
                     {/if}
                     <div class="flex items-center justify-between" use:autoAnimate>
-                        {#if step > 1}
+                        {#if step > 1 && step < 5}
                             <Button type="reset" size="icon">
                                 <ArrowLeft class="size-5" />
                             </Button>
@@ -367,10 +393,12 @@
                     </div>
                 </div>
             </form>
-            <div class="mt-4 text-center text-sm">
-                Already have an account?
-                <a href="/login" class="underline"> Login </a>
-            </div>
+            {#if step < 5}
+                <div class="mt-4 text-center text-sm">
+                    Already have an account?
+                    <a href="/login" class="underline"> Login </a>
+                </div>
+            {/if}
         </Card.Content>
     </Card.Root>
 </div>

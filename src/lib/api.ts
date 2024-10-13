@@ -38,13 +38,15 @@ export async function loginWithFaceApi(embedding: number[]) {
     return response.data;
 }
 
-export async function registerApi(faceImg: Blob | null, username: string, password: string, email: string, age: number | null, gender: "male" | "female" | "unknown") {
+export async function registerApi(faceImg: Blob | null, username: string, password: string, email: string, age: number | null, gender: "male" | "female" | "unknown", embedding: number[] | null) {
     const formData = new FormData();
     if (faceImg)
         formData.append("faceImg", faceImg, "face.jpg");
     formData.append("username", username);
     formData.append("password", password);
     formData.append("email", email);
+    if (embedding)
+        formData.append("embedding", JSON.stringify(embedding));
     if (age)
         formData.append("age", age.toString());
     formData.append("gender", gender);

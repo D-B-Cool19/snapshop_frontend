@@ -3,7 +3,7 @@ import { redirect } from "@sveltejs/kit";
 
 export const handle: Handle = async ({ event, resolve }) => {
     const token = event.cookies.get("token");
-    const publicRoutes = ["/login", "/register"];
+    const publicRoutes = ["/login", "/register", "/"];
     const isPublicRoute = publicRoutes.includes(event.url.pathname);
 
     if (!token && !isPublicRoute) {

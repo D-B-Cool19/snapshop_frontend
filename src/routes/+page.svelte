@@ -1,26 +1,37 @@
 <script lang="ts">
-    const username = "";
+    import { Button, buttonVariants } from "$lib/components/ui/button";
+    import { Input } from "$lib/components/ui/input";
+    import { Label } from "$lib/components/ui/label";
+    import { user } from "$lib/stores";
 </script>
 
 <div class="overflow-auto h-full w-full">
 
-    <header class="bg-gray-100 py-2">
-        <div class="container mx-auto flex justify-between">
-            <ul class="flex space-x-4 text-sm">
-                {#if username}
-                    <li>Hello, {username}!</li>
-                {:else}
-                    <li>Hello, guest!</li>
-                    <li><a href="/login" class="hover:text-blue-500">登录</a>|</li>
-                    <li><a href="/register" class="hover:text-blue-500">免费注册</a>|</li>
-                {/if}
-                <li><a href="/" class="hover:text-blue-500">首页</a>|</li>
-                <li><a href="/cart" class="hover:text-blue-500"><i class="fas fa-shopping-cart"></i>购物车</a>|</li>
-                <li><a href="/history" class="hover:text-blue-500">历史记录</a>|</li>
-                <li><a href="/score" class="hover:text-blue-500">积分商城</a>|</li>
-                <li><a href="/profile" class="hover:text-blue-500">我的账户</a>|</li>
-                <li><a href="#" class="hover:text-blue-500">帮助中心</a>|</li>
-            </ul>
+    <header class="bg-secondary py-2 flex items-center px-4">
+        <ul class="flex space-x-4 text-sm">
+            <li><a href="/" class="hover:text-blue-500">首页</a>|</li>
+            <li><a href="/cart" class="hover:text-blue-500"><i class="fas fa-shopping-cart"></i>购物车</a>|</li>
+            <li><a href="/history" class="hover:text-blue-500">历史记录</a>|</li>
+            <li><a href="/score" class="hover:text-blue-500">积分商城</a>|</li>
+            <li><a href="/profile" class="hover:text-blue-500">我的账户</a>|</li>
+            <li><a href="#" class="hover:text-blue-500">帮助中心</a>|</li>
+        </ul>
+        <div class="ml-auto flex items-center gap-3">
+            {#if $user}
+                <Label>Hello, {$user.username}!</Label>
+                <Button variant="secondary" on:click={() => {
+                    user.set(null);
+                    localStorage.removeItem("user");
+                }}> Logout </Button>
+            {:else}
+                <Label>Hello, guest!</Label>
+                <a href="/login" class={buttonVariants({ variant: "default" })}>
+                    Login
+                </a>
+                <a href="/register" class={buttonVariants({ variant: "secondary" })}>
+                    Register
+                </a>
+            {/if}
         </div>
     </header>
 
@@ -44,13 +55,11 @@
                 </ul>
             </nav>
             <div class="flex items-center space-x-4">
-                <input type="search" placeholder="搜一搜" class="border border-gray-300 rounded-md px-3 py-2 outline-none" />
-                <button type="submit" class="bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600">
+                <Input type="search" placeholder="搜一搜" class="border border-gray-300 rounded-md px-3 py-2 outline-none" />
+                <Button type="submit" class="relative bg-blue-500 text-white rounded-md px-4 py-2 hover:bg-blue-600">
                     <i class="fas fa-search"></i>
-                </button>
-            </div>
-            <div class="relative">
-                <span class="bg-red-500 text-white text-xs rounded-full px-2 py-1 absolute -top-2 -right-2">2</span>
+                    <span class="bg-red-500 text-white text-xs rounded-full px-2 py-1 absolute -top-2 -right-2">2</span>
+                </Button>
             </div>
         </div>
     </div>
