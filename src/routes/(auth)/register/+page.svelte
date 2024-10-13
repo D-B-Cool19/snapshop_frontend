@@ -1,7 +1,6 @@
 <script lang="ts">
     import { goto } from "$app/navigation";
     import { isEmailAvailableApi, isUsernameAvailableApi, loginApi, registerApi, uploadFaceEmbeddingApi } from "$lib/api";
-    import fig3 from "$lib/assets/image/fig4.png";
     import Camera from "$lib/components/camera.svelte";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
@@ -9,10 +8,10 @@
     import { Label } from "$lib/components/ui/label";
     import { Progress } from "$lib/components/ui/progress";
     import * as Select from "$lib/components/ui/select";
-    import { token, user } from "$lib/stores";
+    import { tokenStore, userStore } from "$lib/stores";
     import { cn, flyAndScale } from "$lib/utils";
     import autoAnimate from "@formkit/auto-animate";
-    import { CircleCheck, ScanFace } from "lucide-svelte";
+    import { Aperture, CircleCheck, ScanFace } from "lucide-svelte";
     import { tick } from "svelte";
     import { ArrowLeft, ArrowRight } from "svelte-radix";
 
@@ -29,7 +28,7 @@
     let camera: Camera | null = null;
     let useCamera = false;
     let detectNumber = 0;
-    let primeUserUrl: string | null = null;
+    let isLoading = false;
     let step = 1;
     let errorMessage: string | null = null;
     const registerInfo: RegisterInfo = {
@@ -89,7 +88,6 @@
                 const new_y = Math.max(0, center[1] - size / 2);
                 registerInfo.faceImg = await cropBlob(imageBlob, new_x, new_y, size, size);
                 registerInfo.embedding = embeddings[0].faceEmbedding;
-                primeUserUrl = URL.createObjectURL(registerInfo.faceImg);
             }
         }
         catch (error) {
@@ -135,6 +133,7 @@
                     errorMessage = "Snap ID is too long.";
                     return;
                 }
+                isLoading = true;
                 const result = await isUsernameAvailableApi(username);
                 if (result.available) {
                     registerInfo.username = username;
@@ -159,6 +158,7 @@
                 return;
             }
             try {
+                isLoading = true;
                 const result = await isEmailAvailableApi(registerInfo.email);
                 if (!result.available) {
                     errorMessage = "This email is already taken. Please choose another one.";
@@ -204,6 +204,7 @@
             }
             errorMessage = null;
             try {
+                isLoading = true;
                 await registerApi(
                     useCamera ? registerInfo.faceImg : null,
                     registerInfo.username,
@@ -222,15 +223,17 @@
         }
         else if (step === 5) {
             try {
+                isLoading = true;
                 const result = await loginApi(registerInfo.username, registerInfo.password);
-                user.set(result.user);
-                token.set(result.token);
+                userStore.set(result.user);
+                tokenStore.set(result.token);
                 await goto("/");
             }
             catch (error: any) {
                 errorMessage = "Please check your email, Snap ID, and password.";
             }
         }
+        isLoading = false;
     }
 
     function previousStep(event: Event) {
@@ -243,10 +246,14 @@
         }
     }
 </script>
-
 <div class="flex w-full h-full overflow-hidden items-center justify-center">
-    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[110%] w-[110%]">
-        <img class="w-full h-full blur-md" src={fig3} alt="" />
+    <div class="h-full w-1/2 border-r relative flex items-center justify-center overflow-hidden bg-primary p-3">
+        <enhanced:img src="$lib/assets/image/online-shopping-2.png" class="size-96" alt="" />
+        <div class="flex items-center gap-2 text-primary-foreground absolute left-5 top-5">
+            <Aperture class="size-6" strokeWidth={2.5} />
+            <Label class="text-center text-2xl font-bold z-10 font-sans"> SnapShop </Label>
+        </div>
+
     </div>
     <Card.Root class="z-10 mx-auto max-w-sm shadow-lg w-full bg-card">
         <Card.Header>
@@ -320,7 +327,7 @@
                                 detectNumber === 1 && registerInfo.embedding?.length === 512 && "ring-green-500 ring-4",
                                 (detectNumber > 1 || registerInfo.embedding?.length !== 512) && "ring-red-500",
                             )} />
-                            <Label class={cn(detectNumber === 1 && "text-green-500", detectNumber > 1 && "text-red-500", "transition-all")}>
+                            <Label class={cn(detectNumber === 1 && registerInfo.embedding?.length === 512 && "text-green-500", (detectNumber > 1 || registerInfo.embedding?.length !== 512) && "text-red-500", "transition-all")}>
                                 {(() => {
                                     if (detectNumber === 1) {
                                         if (registerInfo.embedding?.length === 512) {
@@ -339,7 +346,7 @@
                                 })()}
                             </Label>
                         </div>
-                        <Button type="submit" disabled={useCamera && (detectNumber !== 1 || registerInfo.embedding?.length !== 512)}>
+                        <Button type="submit" disabled={isLoading || (useCamera && (detectNumber !== 1 || registerInfo.embedding?.length !== 512))}>
                             Register
                         </Button>
                         <Button variant="secondary" on:click={() => useCamera = false}>
@@ -384,7 +391,7 @@
                             <Label> Step {step} / 4 </Label>
                         {/if}
                         {#if step < 4}
-                            <Button type="submit" size="icon">
+                            <Button type="submit" size="icon" disabled={isLoading}>
                                 <ArrowRight class="size-5" />
                             </Button>
                         {:else}

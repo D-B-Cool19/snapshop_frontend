@@ -44,5 +44,5 @@ function persistToken() {
     return tokenStore;
 }
 
-export const user = persistUser();
-export const token = persistToken();
+export const userStore = persistUser();
+export const tokenStore = persistToken();
