@@ -228,6 +228,7 @@
                 userStore.set(result.user);
                 tokenStore.set(result.token);
                 await goto("/");
+                useCamera = false;
             }
             catch (error: any) {
                 errorMessage = "Please check your email, Snap ID, and password.";

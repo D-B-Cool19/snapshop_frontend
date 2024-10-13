@@ -76,6 +76,7 @@
                     userStore.set(user);
                     tokenStore.set(token);
                     isLogin = true;
+                    useCamera = false;
                 }
                 else if (result.similarUsers) {
                     errorMessage = "Multiple faces found. Please try again.";
@@ -99,6 +100,7 @@
                 userStore.set(result.user);
                 tokenStore.set(result.token);
                 await goto("/");
+                useCamera = false;
             }
             catch (error: any) {
                 errorMessage = "Please check your email, Snap ID, and password.";

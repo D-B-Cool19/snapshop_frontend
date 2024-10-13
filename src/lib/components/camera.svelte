@@ -13,17 +13,24 @@
     export async function capture() {
         if (!videoElement)
             return null;
-        const videoTrack = videoElement.srcObject instanceof MediaStream ? videoElement.srcObject.getVideoTracks()[0] : null;
-        if (!videoTrack)
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+        if (!context)
             return null;
-        const imageCapture = new ImageCapture(videoTrack);
-        try {
-            return await imageCapture.takePhoto();
-        }
-        catch (error: any) {
-            console.error("拍照失败:", error);
-            throw (new Error("拍照失败"));
-        }
+        canvas.width = videoElement.videoWidth;
+        canvas.height = videoElement.videoHeight;
+        context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+        return new Promise<Blob | null>((resolve) => {
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                }
+                else {
+                    console.error("拍照失败: 无法生成图像数据");
+                    resolve(null);
+                }
+            }, "image/jpeg");
+        });
     }
 
     export async function startCamera() {
