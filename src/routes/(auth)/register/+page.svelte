@@ -145,6 +145,7 @@
                 }
             }
             catch (error) {
+                console.log(error);
                 errorMessage = "Failed to check Snap ID availability. Please try again later.";
             }
         }
@@ -168,6 +169,7 @@
                 errorMessage = null;
             }
             catch (error: any) {
+                console.log(error);
                 errorMessage = "Failed to check email availability. Please try again later.";
                 isLoading = false;
                 return;
@@ -219,6 +221,7 @@
                 errorMessage = null;
             }
             catch (error: any) {
+                console.error(error);
                 errorMessage = "Failed to register. Please try again later.";
             }
         }
@@ -232,13 +235,14 @@
                 useCamera = false;
             }
             catch (error: any) {
+                console.error(error);
                 errorMessage = "Please check your email, Snap ID, and password.";
             }
         }
         isLoading = false;
     }
 
-    function previousStep(event: Event) {
+    function previousStep() {
         if (step === 4) {
             useCamera = false;
         }
