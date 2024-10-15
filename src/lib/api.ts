@@ -183,6 +183,6 @@ export async function checkoutApi(checkoutItems: { itemId: number, quantity: num
 }
 
 export async function authApi() {
-    const response = await axios.head("/user/auth");
+    const response = await axios.get("/user/auth");
     return response.data;
 }
