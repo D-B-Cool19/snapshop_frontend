@@ -164,13 +164,13 @@
                     errorMessage = "This email is already taken. Please choose another one.";
                     return;
                 }
+                step = 3;
+                errorMessage = null;
             }
             catch (error: any) {
                 errorMessage = "Failed to check email availability. Please try again later.";
                 return;
             }
-            step = 3;
-            errorMessage = null;
         }
         else if (step === 3) {
             const password = formData.get("password") as string;
@@ -187,7 +187,7 @@
                 errorMessage = "Password is too long.";
                 return;
             }
-            if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{8,}$/.test(password)) {
+            if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[\w!@#$%^&*()+\-=[\]{};':"\\|,.<>/?]{8,}$/.test(password)) {
                 errorMessage = "Password must contain at least one uppercase letter, one lowercase letter, and one number.";
                 return;
             }
@@ -212,7 +212,7 @@
                     registerInfo.email,
                     registerInfo.age,
                     registerInfo.gender,
-                    registerInfo.embedding,
+                    useCamera ? registerInfo.embedding : null,
                 );
                 step = 5;
                 errorMessage = null;
