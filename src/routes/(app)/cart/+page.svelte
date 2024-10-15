@@ -2,7 +2,8 @@
     import type { CartItem } from "$lib/types";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
-    import { authApi, deleteCartItemApi, getCartItemsApi, updateCartItemApi } from "$lib/api";
+    import { authApi, checkoutApi, deleteCartItemApi, getCartItemsApi, updateCartItemApi } from "$lib/api";
+    import * as AlertDialog from "$lib/components/ui/alert-dialog";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import { Checkbox } from "$lib/components/ui/checkbox";
@@ -12,11 +13,18 @@
     import * as Table from "$lib/components/ui/table";
     import { userStore } from "$lib/stores";
     import { formatCurrency } from "$lib/utils";
-    import { Coins } from "lucide-svelte";
+    import { CircleCheck, Coins } from "lucide-svelte";
     import Ellipsis from "lucide-svelte/icons/ellipsis";
     import { onMount } from "svelte";
 
     let itemList: CartItem[] = [];
+    let checkoutSuccess = false;
+    let checkoutInfo: {
+        refund: number
+        totalPrice: number
+        discount: number
+        originalPrice: number
+    } | null = null;
 
     async function refresh() {
         try {
@@ -38,10 +46,6 @@
     $: checkedProducts = itemList.filter(item => item.checked);
     $: totalPrice = checkedProducts.reduce((acc, item) => acc + item.item.price * item.quantity, 0);
 
-    function checkout() {
-        itemList = itemList.filter(item => !item.checked);
-    }
-
     const useCredits: {
         value: number
         label: string
@@ -50,6 +54,25 @@
         label: "0",
     };
     $: useCredits.value = Math.min(useCredits.value, Math.floor(totalPrice) * 10);
+
+    async function checkout() {
+        try {
+            const result = await checkoutApi(useCredits.value);
+            userStore.set(result.user);
+            await refresh();
+            checkoutSuccess = true;
+            checkoutInfo = {
+                refund: result.refund,
+                discount: result.discount,
+                totalPrice: result.totalPrice,
+                originalPrice: result.originalPrice,
+            };
+        // toast.success(`Checkout successful! You earned ${result.refund} credits!`);
+        }
+        catch (error: any) {
+            console.error(error);
+        }
+    }
 
     onMount(async () => {
         try {
@@ -76,7 +99,6 @@
         try {
             const item = itemList.find(item => item.id === itemId);
             if (item) {
-                item.quantity = 0;
                 const result = await updateCartItemApi(itemId, item.quantity, item.checked);
                 item.quantity = result.item.quantity;
                 item.checked = result.item.checked;
@@ -148,12 +170,11 @@
                                     {item.item.name}
                                 </button>
                             </Table.Cell>
-                            <!--                            <Table.Cell> -->
-                            <!--                                <Badge variant={item.status === "In stock" ? "outline" : "destructive"}>{item.status}</Badge> -->
-                            <!--                            </Table.Cell> -->
                             <Table.Cell class="text-primary">{formatCurrency(item.item.price)}</Table.Cell>
                             <Table.Cell class="hidden md:table-cell">
-                                <Input type="number" class="w-20" min={1} max={1000} bind:value={item.quantity} on:change={() => updateItem(item.id)} />
+                                <Input type="number" class="w-20" min={1} max={1000} bind:value={item.quantity} on:change={() => {
+                                    updateItem(item.id);
+                                }} />
                             </Table.Cell>
                             <Table.Cell class="hidden md:table-cell text-primary">{formatCurrency(item.item.price * item.quantity)}</Table.Cell>
                             <Table.Cell>
@@ -222,3 +243,27 @@
         </Card.Content>
     </Card.Root>
 </div>
+
+<AlertDialog.Root bind:open={checkoutSuccess}>
+    <AlertDialog.Content class="!w-auto">
+        <AlertDialog.Header>
+            <AlertDialog.Title>Checkout successful!</AlertDialog.Title>
+            <AlertDialog.Description class="whitespace-pre-line text-base flex flex-col gap-3">
+                <div class="grid grid-cols-2">
+                    <div>Original Price:</div><span class="text-primary">{formatCurrency(checkoutInfo?.originalPrice ?? 0)}</span>
+                    <div>Discount:</div><span class="text-primary"> {formatCurrency(checkoutInfo?.discount ?? 0)}</span>
+                    <div>Total Price:</div><span class="text-primary">{formatCurrency(checkoutInfo?.totalPrice ?? 0)}</span>
+                </div>
+                <div>
+                    You earned <span class="text-yellow-500">{checkoutInfo?.refund}</span> credits for this purchase!
+                </div>
+            </AlertDialog.Description>
+        </AlertDialog.Header>
+        <div class="w-full flex justify-center">
+            <CircleCheck class="size-32 text-green-500" />
+        </div>
+        <AlertDialog.Footer class="w-full flex !justify-center">
+            <AlertDialog.Action>Continue</AlertDialog.Action>
+        </AlertDialog.Footer>
+    </AlertDialog.Content>
+</AlertDialog.Root>

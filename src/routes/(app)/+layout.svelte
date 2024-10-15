@@ -15,7 +15,6 @@
     import autoAnimate from "@formkit/auto-animate";
     import {
         Aperture,
-        ClipboardList,
         Coins,
         House,
         LockKeyhole,
@@ -23,7 +22,6 @@
         LogOut,
         Settings,
         ShoppingCart,
-        UsersRound,
     } from "lucide-svelte";
     import { onMount } from "svelte";
     import { toast } from "svelte-sonner";
@@ -31,14 +29,15 @@
     const sidebarItems = [
         { label: "Home", icon: House, href: "/", roles: [0, 1] },
         { label: "Cart", icon: ShoppingCart, href: "/cart", roles: [0, 1] },
-        { label: "Order", icon: ClipboardList, href: "/order", roles: [0, 1] },
-        { label: "Profile", icon: UsersRound, href: "/profile", roles: [0, 1] },
+        // { label: "Order", icon: ClipboardList, href: "/order", roles: [0, 1] },
+        // { label: "Profile", icon: UsersRound, href: "/profile", roles: [0, 1] },
         { label: "Setting", icon: Settings, href: "/setting", roles: [0, 1] },
         { label: "Admin", icon: LockKeyhole, href: "/admin", roles: [1] },
     ];
 
     let item: string | null = null;
     let itemDetail: ItemDetail | null = null;
+    let quantity = 1;
 
     async function getItemDetail() {
         if (!item)
@@ -47,6 +46,7 @@
             itemDetail = null;
             const result = await getItemDetailApi(Number.parseInt(item));
             itemDetail = result.item;
+            quantity = 1;
         }
         catch (error: any) {
             console.error(error);
@@ -85,7 +85,7 @@
             return;
         }
         try {
-            await addToCartApi(itemDetail.id, 1);
+            await addToCartApi(itemDetail.id, quantity);
             toast.success(`Added ${itemDetail?.name} to cart!`);
             goto("/cart?refresh");
         }
@@ -94,7 +94,6 @@
             toast.error("Failed to add to cart!");
         }
     }
-
 </script>
 
 <div class="overflow-auto h-full w-full bg-secondary flex flex-col transition-all" use:autoAnimate>
@@ -162,10 +161,12 @@
     </header>
     <slot />
 
-    <Dialog.Root open={item} onOutsideClick={() => {
-        const url = new URL($page.url);
-        url.searchParams.delete("item");
-        goto(`${url.pathname}?${url.searchParams.toString()}`);
+    <Dialog.Root open={item} onOpenChange={(open) => {
+        if (!open) {
+            const url = new URL($page.url);
+            url.searchParams.delete("item");
+            goto(`${url.pathname}?${url.searchParams.toString()}`);
+        }
     }}
     >
         <Dialog.Content class="max-w-screen-lg h-[600px]">
@@ -184,7 +185,7 @@
                             <Carousel.Next class="right-5" />
                         </Carousel.Root>
                     </div>
-                    <div class="flex-1 p-5 flex flex-col h-full">
+                    <div class="flex-1 p-5 flex flex-col h-full max-h-full">
                         <Label class="text-3xl font-bold">{itemDetail.name}</Label>
                         <div class="w-full flex items-center mt-4">
                             <Label class="text-primary text-2xl font-bold flex-1">
@@ -199,44 +200,38 @@
                             <Separator orientation="vertical" class="mx-2" />
                             <Label class="text-muted-foreground"> {itemDetail.reviews} Reviews </Label>
                         </div>
-                        <Tabs.Root value="description" class="w-full flex-1 border rounded-lg mt-2">
-                            <Tabs.List class="w-full">
-                                <Tabs.Trigger value="description" class="flex-1">Description</Tabs.Trigger>
-                                <Tabs.Trigger value="features" class="flex-1">Features</Tabs.Trigger>
-                            </Tabs.List>
-                            <Tabs.Content value="description" class="px-2">
-                                <Label class="font-normal whitespace-pre-wrap">{itemDetail.description}</Label>
+                        <Tabs.Root value="description" class="w-full mt-2 h-52 max-h-52 flex flex-col overflow-y-hidden">
+                            <div class="flex">
+                                <Tabs.List class="flex-grow-0 flex-shrink-0">
+                                    <Tabs.Trigger value="description" class="text-xs">Description</Tabs.Trigger>
+                                    <Tabs.Trigger value="features" class="text-xs">Features</Tabs.Trigger>
+                                </Tabs.List>
+                                <div class="flex-1"></div>
+                            </div>
+                            <Tabs.Content value="description" class=" mt-1 overflow-y-auto">
+                                <Label class="text-xs whitespace-pre-wrap">{itemDetail.description}</Label>
                             </Tabs.Content>
-                            <Tabs.Content value="features" class="px-2">
-                                <Label class="font-normal whitespace-pre-wrap">{itemDetail.features}</Label>
+                            <Tabs.Content value="features" class="mt-1 overflow-y-auto">
+                                <Label class="text-xs whitespace-pre-wrap">{itemDetail.features}</Label>
                             </Tabs.Content>
                         </Tabs.Root>
                         <div class="w-full flex items-center my-4">
-                            <Button size="lg" class="gap-2 font-bold w-full" on:click={addCart}>
+                            <div class="flex gap-3 items-center">
+                                <Button size="icon" class="rounded-full size-8" on:click={() => {
+                                    quantity = Math.max(1, quantity - 1);
+                                }}>-</Button>
+                                <Label class="text-primary min-w-4 text-center">{quantity}</Label>
+                                <Button size="icon" class="rounded-full size-8" on:click={() => {
+                                    quantity = Math.min(1000, quantity + 1);
+                                }}>+</Button>
+                            </div>
+                            <Button size="lg" class="gap-2 font-bold ml-auto" on:click={addCart}>
                                 <ShoppingCart class="size-5" />
                                 Add to cart
                             </Button>
-                            <!--                            <Button variant="ghost" size="icon" class="text-red-500"> -->
-                            <!--                                <Heart /> -->
-                            <!--                            </Button> -->
                         </div>
                     </div>
                 </div>
-                <!--                <Dialog.Header> -->
-                <!--                    <Dialog.Title>{itemDetail.name}</Dialog.Title> -->
-                <!--                    <Dialog.Description> -->
-                <!--                        {itemDetail.description} -->
-                <!--                    </Dialog.Description> -->
-                <!--                </Dialog.Header> -->
-                <!--                <div class="grid gap-4 py-4"> -->
-                <!--                    <img src={itemDetail.images[0]} alt={itemDetail.name} class="w-full h-48 object-cover rounded-md" /> -->
-                <!--                    <Label>Price: {itemDetail.price}</Label> -->
-                <!--                    <Label>Stock: {itemDetail.stock}</Label> -->
-                <!--                    <Label>Category: {itemDetail.category}</Label> -->
-                <!--                </div> -->
-                <!--                <Dialog.Footer> -->
-                <!--                    <Button type="submit">Add to cart</Button> -->
-                <!--                </Dialog.Footer> -->
 
             {/if}
         </Dialog.Content>

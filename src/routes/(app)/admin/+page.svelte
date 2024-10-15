@@ -3,7 +3,16 @@
 
     import { page } from "$app/stores";
 
-    import { addItemApi, deleteItemApi, getItemDetailApi, getItemsApi, getUserApi, updateItemApi } from "$lib/api";
+    import {
+        addItemApi,
+        deleteItemApi,
+        deleteUserApi,
+        getAllUserApi,
+        getItemDetailApi,
+        getItemsApi,
+        getUserApi,
+        updateItemApi,
+    } from "$lib/api";
     import { Button } from "$lib/components/ui/button";
     import * as Card from "$lib/components/ui/card";
     import * as Dialog from "$lib/components/ui/dialog/index.js";
@@ -12,7 +21,7 @@
     import { Label } from "$lib/components/ui/label";
     import * as Table from "$lib/components/ui/table";
     import { Textarea } from "$lib/components/ui/textarea";
-    import { type Item, type ItemDetail } from "$lib/types";
+    import { type Item, type ItemDetail, type User } from "$lib/types";
 
     import { formatCurrency } from "$lib/utils";
     import autoAnimate from "@formkit/auto-animate";
@@ -23,12 +32,16 @@
 
     let itemList: Item[] = [];
     let input: HTMLInputElement | null = null;
+    let userList: User[] = [];
 
     async function refresh() {
         try {
             const result = await getItemsApi();
             itemList = result.items;
             itemList.sort((a, b) => a.id - b.id);
+
+            const result2 = await getAllUserApi();
+            userList = result2.users;
         }
         catch (error: any) {
             console.error(error);
@@ -140,6 +153,16 @@
         }
     }
 
+    async function deleteUser(id: number) {
+        try {
+            await deleteUserApi(id);
+            await refresh();
+        }
+        catch (error: any) {
+            console.error(error);
+        }
+    }
+
 </script>
 
 <div class="flex-1 flex p-3 gap-3">
@@ -230,6 +253,7 @@
             </Button>
         </Card.Footer>
     </Card.Root>
+
     <Card.Root class="flex-1">
         <Card.Header>
             <Card.Title>User</Card.Title>
@@ -237,6 +261,62 @@
                 View user's public information.
             </Card.Description>
         </Card.Header>
+        <Card.Content class="flex-1 flex overflow-y-auto">
+            <Table.Root>
+                <Table.Header>
+                    <Table.Row>
+                        <Table.Head class="hidden sm:table-cell">
+                            ID
+                        </Table.Head>
+                        <Table.Head class="hidden sm:table-cell">
+                            Face Image
+                        </Table.Head>
+                        <Table.Head>Snap ID</Table.Head>
+                        <Table.Head>Credits</Table.Head>
+                        <Table.Head>
+                            <span class="sr-only">Actions</span>
+                        </Table.Head>
+                    </Table.Row>
+                </Table.Header>
+                <Table.Body>
+                    {#each userList as user}
+                        <Table.Row>
+                            <Table.Cell class="hidden sm:table-cell">
+                                {user.id}
+                            </Table.Cell>
+                            <Table.Cell class="hidden sm:table-cell">
+                                <img src={user.faceImgUrl} alt={user.username} class="size-20 object-cover" />
+                            </Table.Cell>
+                            <Table.Cell class="font-medium ">
+                                {user.username}
+                            </Table.Cell>
+                            <Table.Cell class="text-yellow-500">{user.count}</Table.Cell>
+                            <Table.Cell class="hidden md:table-cell">
+                            </Table.Cell>
+                            <Table.Cell>
+                                <DropdownMenu.Root>
+                                    <DropdownMenu.Trigger asChild let:builder>
+                                        <Button
+                                            aria-haspopup="true"
+                                            size="icon"
+                                            variant="ghost"
+                                            builders={[builder]}
+                                        >
+                                            <Ellipsis class="h-4 w-4" />
+                                            <span class="sr-only">Toggle menu</span>
+                                        </Button>
+                                    </DropdownMenu.Trigger>
+                                    <DropdownMenu.Content align="end">
+                                        <DropdownMenu.Label>Actions</DropdownMenu.Label>
+                                        <DropdownMenu.Item class="text-destructive" on:click={() => deleteUser(user.id)}>Delete</DropdownMenu.Item>
+                                    </DropdownMenu.Content>
+                                </DropdownMenu.Root>
+                            </Table.Cell>
+                        </Table.Row>
+                    {/each}
+                </Table.Body>
+            </Table.Root>
+        </Card.Content>
     </Card.Root>
 </div>
 
@@ -303,10 +383,12 @@
     </Dialog.Content>
 </Dialog.Root>
 
-<Dialog.Root open={item} onOutsideClick={() => {
-    const url = new URL($page.url);
-    url.searchParams.delete("edit-item");
-    goto(`${url.pathname}?${url.searchParams.toString()}`);
+<Dialog.Root open={item} onOpenChange={(open) => {
+    if (!open) {
+        const url = new URL($page.url);
+        url.searchParams.delete("edit-item");
+        goto(`${url.pathname}?${url.searchParams.toString()}`);
+    }
 }}
 >
     <Dialog.Content class="max-w-screen-sm flex flex-col">

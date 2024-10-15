@@ -1,4 +1,5 @@
-import { configStore, type ThemeColor, type ThemeMode } from "./stores";
+import type { ThemeColor, ThemeMode } from "./types";
+import { configStore } from "$lib/stores";
 
 export function setThemeColor(color: ThemeColor) {
     configStore.update((config) => {

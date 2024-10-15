@@ -74,6 +74,13 @@ export async function isEmailAvailableApi(email: string) {
     return response.data;
 }
 
+export async function getAllUserApi() {
+    const response = await axios.get<{
+        users: User[]
+    }>("/user/all");
+    return response.data;
+}
+
 export async function getUserApi() {
     const response = await axios.get<{
         user: User
@@ -134,7 +141,7 @@ export async function updateItemApi(itemId: number, name: string, price: number,
 }
 
 export async function deleteItemApi(itemId: number) {
-    const response = await axios.delete<object>(`/item${itemId}`);
+    const response = await axios.delete<object>(`/item/${itemId}`);
     return response.data;
 }
 
@@ -171,12 +178,14 @@ export async function updateCartItemApi(itemId: number, quantity: number, checke
     return response.data;
 }
 
-export async function checkoutApi(checkoutItems: { itemId: number, quantity: number }[], credits: number) {
+export async function checkoutApi(credits: number) {
     const response = await axios.post<{
-        items: CartItem[]
+        discount: number
+        originalPrice: number
+        totalPrice: number
         user: User
+        refund: number
     }>(`/cart/checkout`, {
-        checkoutItems,
         credits,
     });
     return response.data;
@@ -184,5 +193,10 @@ export async function checkoutApi(checkoutItems: { itemId: number, quantity: num
 
 export async function authApi() {
     const response = await axios.get("/user/auth");
+    return response.data;
+}
+
+export async function deleteUserApi(userId: number) {
+    const response = await axios.delete(`/user/${userId}`);
     return response.data;
 }

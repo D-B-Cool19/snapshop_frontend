@@ -48,6 +48,7 @@ export interface Item {
     price: number
     image: string | null
     rate: number
+    description: string
 }
 
 export interface CartItem {
