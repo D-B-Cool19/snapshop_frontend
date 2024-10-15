@@ -169,6 +169,7 @@
             }
             catch (error: any) {
                 errorMessage = "Failed to check email availability. Please try again later.";
+                isLoading = false;
                 return;
             }
         }
