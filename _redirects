@@ -1,1 +1,2 @@
 /api/* http://47.98.118.134/api/:splat 200
+/static/* http://47.98.118.134/static/:splat 200
