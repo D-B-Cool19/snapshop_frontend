@@ -1,38 +1,31 @@
-# create-svelte
+# SnapShop Frontend Service
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/main/packages/create-svelte).
+This is a frontend service for SnapShop, which is based on the SvelteKit framework and shadcn-svelte UI library.
 
-## Creating a project
+---
 
-If you're seeing this, you've probably already done this step. Congrats!
+## Installation
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+Use Node.js to install the dependencies:
 
-# create a new project in my-app
-npm create svelte@latest my-app
+```
+npm install pnpm -g
+pnpm install
 ```
 
-## Developing
+## Running the Service
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+To run the service, execute the following command:
 
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
+```
+pnpm run dev
 ```
 
-## Building
+The service will start running on `http://localhost:5173`.
 
-To create a production version of your app:
+## Cloud Deployment
 
-```bash
-npm run build
+We have deployed the service on Netlify. You can access the service at the following URL:
+
 ```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+https://snapshop.cc
